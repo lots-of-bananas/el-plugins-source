@@ -50,9 +50,9 @@ class ElTestOverlay extends OverlayPanel
 
         TableComponent tableComponent = new TableComponent();
         tableComponent.setColumnAlignments(TableAlignment.LEFT, TableAlignment.RIGHT);
-        //Duration duration = Duration.between(plugin.botTimer, Instant.now());
-        //timeFormat = (duration.toHours() < 1) ? "mm:ss" : "HH:mm:ss";
-        //tableComponent.addRow("Time:", formatDuration(duration.toMillis(), timeFormat));
+        Duration duration = Duration.between(plugin.botTimer, Instant.now());
+        timeFormat = (duration.toHours() < 1) ? "mm:ss" : "HH:mm:ss";
+        tableComponent.addRow("Time:", formatDuration(duration.toMillis(), timeFormat));
         if(plugin.status!=null){
             tableComponent.addRow("Status:", plugin.status.toString());
         } else {

@@ -73,9 +73,6 @@ subprojects {
         compileOnly(Libraries.okhttp3)
         compileOnly(Libraries.pf4j)
         compileOnly(Libraries.rxjava)
-
-        // kotlin
-        compileOnly(kotlin("stdlib"))
     }
 	
     configure<JavaPluginConvention> {

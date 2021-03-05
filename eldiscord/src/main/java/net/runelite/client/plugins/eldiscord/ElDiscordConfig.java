@@ -88,10 +88,22 @@ public interface ElDiscordConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "anonymiseScreenshot",
+			name = "Anonymise Screenshots",
+			description = "Attempts to cover up your username in screenshots.",
+			position = 1,
+			section = "generalTitle"
+	)
+	default boolean anonymiseScreenshot()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "sendPlayers",
 			name = "Send Players",
 			description = "Sends player spotted messages.",
-			position = 1,
+			position = 2,
 			section = "generalTitle"
 	)
 	default boolean sendPlayers()
@@ -103,7 +115,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "sendDamage",
 			name = "Send Damage",
 			description = "Sends damage taken messages.",
-			position = 2,
+			position = 3,
 			section = "generalTitle"
 	)
 	default boolean sendDamage()
@@ -115,7 +127,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "sendDeath",
 			name = "Send Death Message",
 			description = "Sends death messages.",
-			position = 3,
+			position = 4,
 			section = "generalTitle"
 	)
 	default boolean sendDeath()
@@ -127,7 +139,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "sendLevelUp",
 			name = "Send Level Ups",
 			description = "Sends level up messages.",
-			position = 4,
+			position = 5,
 			section = "generalTitle"
 	)
 	default boolean sendLevelUp()
@@ -139,7 +151,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "sendWorld",
 			name = "Send World",
 			description = "Sends world messages.",
-			position = 5,
+			position = 6,
 			section = "generalTitle"
 	)
 	default boolean sendWorld()
@@ -151,7 +163,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "sendKills",
 			name = "Send Kills",
 			description = "Sends Kill messages.",
-			position = 6,
+			position = 7,
 			section = "generalTitle"
 	)
 	default boolean sendKills()
@@ -163,7 +175,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "sendLoot",
 			name = "Send Loot",
 			description = "Sends Loot messages.",
-			position = 7,
+			position = 8,
 			section = "generalTitle"
 	)
 	default boolean sendLoot()
@@ -172,11 +184,25 @@ public interface ElDiscordConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "sendIdleScreenshot",
+			name = "Send Idle Screenshot",
+			description = "Sends an idle screenshot.",
+			position = 9,
+			section = "generalTitle"
+	)
+	default boolean sendIdleScreenshot()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "idleMessage",
 			name = "Idle Message (Ticks)",
-			description = "If idle for this amount of ticks, mention user.",
-			position = 8,
-			section = "generalTitle"
+			description = "If idle for this amount of ticks, mentions user.",
+			position = 10,
+			section = "generalTitle",
+			hidden=true,
+			unhide = "sendIdleScreenshot"
 	)
 	default int idleMessage()
 	{
@@ -186,8 +212,8 @@ public interface ElDiscordConfig extends Config
 	@ConfigItem(
 			keyName = "sendUpdateScreenshot",
 			name = "Send Update Screenshot",
-			description = "Sends an update screenshot every 30 seconds.",
-			position = 10,
+			description = "Sends an update screenshot.",
+			position = 11,
 			section = "generalTitle"
 	)
 	default boolean sendUpdateScreenshot()
@@ -199,7 +225,7 @@ public interface ElDiscordConfig extends Config
 			keyName = "updateInterval",
 			name = "Interval (Ticks)",
 			description = "Set the interval to send update screenshots.",
-			position = 11,
+			position = 12,
 			section = "generalTitle",
 			hidden=true,
 			unhide = "sendUpdateScreenshot"

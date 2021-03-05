@@ -23,7 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-rootProject.name = "el externals"
+rootProject.name = "el-plugins-source"
 
 include(":elairs")
 include(":elbarbarian")

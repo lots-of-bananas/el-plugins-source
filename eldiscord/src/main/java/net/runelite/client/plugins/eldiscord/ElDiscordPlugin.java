@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.*;
+import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -21,6 +22,8 @@ import net.runelite.client.plugins.elutils.ElUtils;
 import net.runelite.client.plugins.loottracker.LootTrackerPlugin;
 
 import java.awt.*;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import com.google.common.base.Strings;
 import java.awt.image.BufferedImage;
@@ -55,6 +58,7 @@ import okhttp3.Response;
 import net.runelite.client.util.HotkeyListener;
 
 import net.runelite.client.plugins.elbreakhandler.ElBreakHandler;
+import static org.apache.commons.lang3.time.DurationFormatUtils.formatDuration;
 
 @Extension
 @PluginDependency(ElUtils.class)
@@ -102,6 +106,7 @@ public class ElDiscordPlugin extends Plugin
 	private GameState previousGameState = GameState.LOADING;
 	private String previousLevelUp = "";
 	private int idleTime = 0;
+	private Instant timeLoggedIn;
 
 	private static String itemImageUrl(int itemId)
 	{
@@ -111,6 +116,8 @@ public class ElDiscordPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		log.info("updating time");
+		timeLoggedIn = Instant.now();
 		keyManager.registerKeyListener(hotkeyListener);
 		lootNpcs = Collections.emptyList();
 		idleTime = 0;
@@ -156,15 +163,15 @@ public class ElDiscordPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		client.setUsername("zezima");
-		if(client.getLocalPlayer().getAnimation()!=-1){
-			idleTime=0;
-		} else {
-			idleTime++;
+		if(client.getLocalPlayer()!=null){
+			if(client.getLocalPlayer().getAnimation()!=-1){
+				idleTime=0;
+			}
 		}
+		idleTime++;
 		WebhookBody webhookBody = new WebhookBody();
-		if(idleTime>config.idleMessage()){
-			webhookBody.setContent("<@" + config.userID() + "> your account has been idle for a minute!\n");
+		if(idleTime>config.idleMessage() && config.sendIdleScreenshot()){
+			webhookBody.setContent("<@" + config.userID() + "> your account has been idle for at least "+config.idleMessage()+" ticks!\n");
 			createWebhookWithScreenshot(webhookBody);
 			idleTime=0;
 		}
@@ -269,6 +276,9 @@ public class ElDiscordPlugin extends Plugin
 
 	private void sendWebhook(WebhookBody webhookBody)
 	{
+		Duration duration = Duration.between(timeLoggedIn, Instant.now());
+		String timeFormat = "HH:mm:ss";
+		webhookBody.setContent("[" + formatDuration(duration.toMillis(), timeFormat) + "]" + webhookBody.getContent());
 		String configUrl = config.webhook();
 		if (Strings.isNullOrEmpty(configUrl))
 		{
@@ -292,6 +302,9 @@ public class ElDiscordPlugin extends Plugin
 
 	private void sendTextOnlyWebhook(WebhookBody webhookBody)
 	{
+		Duration duration = Duration.between(timeLoggedIn, Instant.now());
+		String timeFormat = "HH:mm:ss";
+		webhookBody.setContent("[" + formatDuration(duration.toMillis(), timeFormat) + "]" + webhookBody.getContent());
 		String configUrl = config.webhook();
 		if (Strings.isNullOrEmpty(configUrl))
 		{
@@ -307,6 +320,9 @@ public class ElDiscordPlugin extends Plugin
 
 	private void createWebhookWithScreenshot(WebhookBody webhookBody)
 	{
+		Duration duration = Duration.between(timeLoggedIn, Instant.now());
+		String timeFormat = "HH:mm:ss";
+		webhookBody.setContent("[" + formatDuration(duration.toMillis(), timeFormat) + "]" + webhookBody.getContent());
 		String configUrl = config.webhook();
 		if (Strings.isNullOrEmpty(configUrl))
 		{
@@ -325,12 +341,9 @@ public class ElDiscordPlugin extends Plugin
 		drawManager.requestNextFrameListener(image ->
 		{
 			BufferedImage bufferedImage = (BufferedImage) image;
-			Graphics2D g2d = bufferedImage.createGraphics();
-			g2d.setColor(new Color(202,185,148));
-			log.info("height:" + bufferedImage.getHeight() + ", width:" + bufferedImage.getWidth());
-			g2d.fillRect(7,bufferedImage.getHeight()-44,100,15);
-			g2d.dispose();
-
+			if(config.anonymiseScreenshot()){
+				bufferedImage = censorImage(bufferedImage);
+			}
 			byte[] imageBytes;
 			try
 			{
@@ -421,27 +434,31 @@ public class ElDiscordPlugin extends Plugin
 				if(previousGameState.equals(GameState.LOGGED_IN)){
 					webhookBody.setContent("**<@" + config.userID() + "> has logged out.**\n");
 				}
+				sendTextOnlyWebhook(webhookBody);
 				break;
 			case LOGGED_IN:
 				if(previousGameState.equals(GameState.HOPPING)){
+					timeLoggedIn = Instant.now();
 					if(config.sendWorld()){
 						webhookBody.setContent("**<@" + config.userID() + "> has hopped to world " + client.getWorld() + ".**\n");
 					} else {
 						webhookBody.setContent("**<@" + config.userID() + "> has hopped.**\n");
 					}
+					sendTextOnlyWebhook(webhookBody);
 				} else if(previousGameState.equals(GameState.LOGGING_IN)) {
+					timeLoggedIn = Instant.now();
 					if(config.sendWorld()){
 						webhookBody.setContent("**<@" + config.userID() + "> has connected to world " + client.getWorld() + ".**\n");
 					} else {
 						webhookBody.setContent("**<@" + config.userID() + "> has connected.**\n");
 					}
+					sendTextOnlyWebhook(webhookBody);
 				}
 				break;
 		}
 		if(event.getGameState()!=GameState.LOADING){
 			previousGameState=event.getGameState();
 		}
-		sendTextOnlyWebhook(webhookBody);
 	}
 
 	@Subscribe
@@ -487,6 +504,12 @@ public class ElDiscordPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event)
+	{
+		idleTime=0;
+	}
+
+	@Subscribe
 	public void onPlayerSpawned(PlayerSpawned event){
 		if(!config.sendPlayers() || event.getPlayer().getName().equals(client.getLocalPlayer().getName())){
 			return;
@@ -517,5 +540,24 @@ public class ElDiscordPlugin extends Plugin
 			webhookBody.setContent("<@" + config.userID() + "> someone has said bot in the chat!\n");
 			createWebhookWithScreenshot(webhookBody);
 		}
+	}
+
+	private BufferedImage censorImage(BufferedImage bufferedImage)
+	{
+		if(client.isStretchedEnabled()){
+			return bufferedImage.getSubimage(0,0,1,1);
+		}
+		if(client.getVarcIntValue(41)!=1337){
+			if(client.getWidget(162,58)!=null){
+				Widget chatboxInput = client.getWidget(162,58);
+				if(chatboxInput.getBounds()!=null){
+					Graphics2D g2d = bufferedImage.createGraphics();
+					g2d.setColor(new Color(202,185,148));
+					g2d.fillRect(chatboxInput.getCanvasLocation().getX(),(int) chatboxInput.getCanvasLocation().getY(),(int) chatboxInput.getBounds().getWidth(),(int) chatboxInput.getBounds().getHeight());
+					g2d.dispose();
+				}
+			}
+		}
+		return bufferedImage;
 	}
 }
