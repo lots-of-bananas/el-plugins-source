@@ -1,13 +1,14 @@
 package net.runelite.client.plugins.elhunterfree;
 
 import com.google.inject.Provides;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.*;
 import net.runelite.api.Point;
+import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.*;
-import net.runelite.api.queries.TileQuery;
+import net.runelite.api.events.ClientTick;
+import net.runelite.api.events.ConfigButtonClicked;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -15,15 +16,18 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.plugins.elutils.ElUtils;
-import net.runelite.client.plugins.elbreakhandler.ElBreakHandler;
+import net.runelite.client.ui.overlay.OverlayManager;
 import org.pf4j.Extension;
 
+import javax.inject.Inject;
 import java.awt.*;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+
 import static net.runelite.client.plugins.elhunterfree.ElHunterFreeState.*;
 
 @Extension
@@ -355,15 +359,11 @@ public class ElHunterFreePlugin extends Plugin
 
 	private boolean checkForGroundItems()
 	{
-		for(Tile tile : new TileQuery().isWithinDistance(client.getLocalPlayer().getWorldLocation(),10).result(client)) {
-			if(tile.getGroundItems()!=null){
-				for(TileItem tileItem : tile.getGroundItems()){
-					if(REQUIRED_ITEMS.contains(tileItem.getId())){
-						targetMenu = new MenuEntry ("Take", "<col=ff9040>",tileItem.getId(),20,tileItem.getTile().getX(),tileItem.getTile().getY(),false);
-						utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
-						return true;
-					}
-				}
+		for(TileItem tileItem : utils.spawnedItems.keySet()){
+			if(tileItem.getTile().getWorldLocation().distanceTo(client.getLocalPlayer().getWorldLocation())<10 && REQUIRED_ITEMS.contains(tileItem.getId())){
+				targetMenu = new MenuEntry ("Take", "<col=ff9040>",tileItem.getId(),20,tileItem.getTile().getSceneLocation().getX(),tileItem.getTile().getSceneLocation().getY(),false);
+				utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+				return true;
 			}
 		}
 		return false;

@@ -1,10 +1,9 @@
 package net.runelite.client.plugins.elsuperglass;
 
 import com.google.inject.Provides;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.*;
 import net.runelite.api.Point;
+import net.runelite.api.*;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.ConfigButtonClicked;
 import net.runelite.api.events.GameTick;
@@ -17,11 +16,11 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.plugins.elutils.ElUtils;
-import net.runelite.client.plugins.elbreakhandler.ElBreakHandler;
+import net.runelite.client.ui.overlay.OverlayManager;
 import org.pf4j.Extension;
 
+import javax.inject.Inject;
 import java.awt.*;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -121,6 +120,8 @@ public class ElSuperglassPlugin extends Plugin
 				BANKS.add(10517);
 				BANKS.add(31582);
 				BANKS.add(26707);
+				BANKS.add(26711);
+				BANKS.add(10583);
 
 			} else {
 				shutDown();
@@ -339,7 +340,7 @@ public class ElSuperglassPlugin extends Plugin
 		if(targetObject!=null){
 			if(targetObject.getId()==31582){
 				targetMenu = new MenuEntry("","",targetObject.getId(),4,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY()-1,false);
-			} else if(targetObject.getId()==26707){
+			} else if(targetObject.getId()==26707 || targetObject.getId()==26711){
 				targetMenu = new MenuEntry("","",targetObject.getId(),3,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY(),false);
 			} else {
 				targetMenu = new MenuEntry("","",targetObject.getId(),4,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY(),false);

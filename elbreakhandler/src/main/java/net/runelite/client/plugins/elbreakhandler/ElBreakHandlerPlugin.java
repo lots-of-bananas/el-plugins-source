@@ -1,27 +1,11 @@
 package net.runelite.client.plugins.elbreakhandler;
 
-import net.runelite.client.plugins.elbreakhandler.ui.ElBreakHandlerPanel;
-import net.runelite.client.plugins.elbreakhandler.ui.utils.IntRandomNumberGenerator;
+import com.google.inject.Provides;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.Disposable;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import javax.inject.Inject;
 import lombok.Getter;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.MenuAction;
-import net.runelite.api.Point;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
@@ -29,25 +13,49 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.chat.ChatColorType;
+import net.runelite.client.chat.ChatMessageBuilder;
+import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.WorldService;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.elbreakhandler.ui.ElBreakHandlerPanel;
+import net.runelite.client.plugins.elbreakhandler.ui.utils.IntRandomNumberGenerator;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.WorldUtil;
+import net.runelite.http.api.worlds.World;
+import net.runelite.http.api.worlds.WorldResult;
+import net.runelite.http.api.worlds.WorldType;
 import org.apache.commons.lang3.tuple.Pair;
 import org.pf4j.Extension;
+
+import javax.inject.Inject;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Extension
 @PluginDescriptor(
 	name = "El break handler",
 	description = "Automatically takes breaks for you (?)"
 )
+@Slf4j
 public class ElBreakHandlerPlugin extends Plugin
 {
 	public final static String CONFIG_GROUP = "elbreakhandler";
+	private static final int DISPLAY_SWITCHER_MAX_ATTEMPTS = 3;
 
 	@Inject
 	private Client client;
@@ -65,6 +73,27 @@ public class ElBreakHandlerPlugin extends Plugin
 	@Inject
 	private ElBreakHandler elBreakHandler;
 
+	@Inject
+	private OptionsConfig optionsConfig;
+
+	@Inject
+	private WorldService worldService;
+
+	@Inject
+	private ChatMessageManager chatMessageManager;
+
+	@Provides
+	public NullConfig getConfig()
+	{
+		return configManager.getConfig(NullConfig.class);
+	}
+
+	@Provides
+	public OptionsConfig getOptionsConfig()
+	{
+		return configManager.getConfig(OptionsConfig.class);
+	}
+
 	public static String data;
 
 	private NavigationButton navButton;
@@ -81,13 +110,16 @@ public class ElBreakHandlerPlugin extends Plugin
 	private ElBreakHandlerState state = ElBreakHandlerState.NULL;
 	private ExecutorService executorService;
 
+	private net.runelite.api.World quickHopTargetWorld;
+	private int displaySwitcherAttempts = 0;
+
 	protected void startUp()
 	{
 		executorService = Executors.newSingleThreadExecutor();
 
 		panel = injector.getInstance(ElBreakHandlerPanel.class);
 
-		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(getClass(), "el_special.png");
+		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "el_special.png");
 
 		navButton = NavigationButton.builder()
 			.tooltip("El break handler")
@@ -290,6 +322,22 @@ public class ElBreakHandlerPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
 			state = ElBreakHandlerState.LOGIN_SCREEN;
+
+			if (!elBreakHandler.getActivePlugins().isEmpty())
+			{
+				if (optionsConfig.hopAfterBreak() && (optionsConfig.american() || optionsConfig.unitedKingdom() || optionsConfig.german() || optionsConfig.australian()))
+				{
+					hop();
+				}
+			}
+
+			if (optionsConfig.stopAfterBreaks() != 0 && elBreakHandler.getTotalAmountOfBreaks() >= optionsConfig.stopAfterBreaks())
+			{
+				for (Plugin plugin : Set.copyOf(elBreakHandler.getActivePlugins()))
+				{
+					elBreakHandler.stopPlugin(plugin);
+				}
+			}
 		}
 	}
 
@@ -395,7 +443,49 @@ public class ElBreakHandlerPlugin extends Plugin
 		{
 			delay--;
 		}
+
+		if (quickHopTargetWorld == null)
+		{
+			return;
+		}
+
+		if (client.getWidget(WidgetInfo.WORLD_SWITCHER_LIST) == null)
+		{
+			client.openWorldHopper();
+
+			if (++displaySwitcherAttempts >= DISPLAY_SWITCHER_MAX_ATTEMPTS)
+			{
+				String chatMessage = new ChatMessageBuilder()
+						.append(ChatColorType.NORMAL)
+						.append("Failed to quick-hop after ")
+						.append(ChatColorType.HIGHLIGHT)
+						.append(Integer.toString(displaySwitcherAttempts))
+						.append(ChatColorType.NORMAL)
+						.append(" attempts.")
+						.build();
+
+				chatMessageManager
+						.queue(QueuedMessage.builder()
+								.type(ChatMessageType.CONSOLE)
+								.runeLiteFormattedMessage(chatMessage)
+								.build());
+
+				resetQuickHopper();
+			}
+		}
+		else
+		{
+			client.hopToWorld(quickHopTargetWorld);
+			resetQuickHopper();
+		}
 	}
+
+	private void resetQuickHopper()
+	{
+		displaySwitcherAttempts = 0;
+		quickHopTargetWorld = null;
+	}
+
 
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked menuOptionClicked)
@@ -553,5 +643,137 @@ public class ElBreakHandlerPlugin extends Plugin
 		menuOptionClicked.setMenuAction(menuAction);
 		menuOptionClicked.setActionParam(param0);
 		menuOptionClicked.setWidgetId(param1);
+	}
+
+	private World findWorld(List<World> worlds, EnumSet<WorldType> currentWorldTypes, int totalLevel)
+	{
+		World world = worlds.get(new Random().nextInt(worlds.size()));
+
+		EnumSet<WorldType> types = world.getTypes().clone();
+
+		types.remove(WorldType.LAST_MAN_STANDING);
+
+		if (types.contains(WorldType.SKILL_TOTAL))
+		{
+			try
+			{
+				int totalRequirement = Integer.parseInt(world.getActivity().substring(0, world.getActivity().indexOf(" ")));
+
+				if (totalLevel >= totalRequirement)
+				{
+					types.remove(WorldType.SKILL_TOTAL);
+				}
+			}
+			catch (NumberFormatException ex)
+			{
+				log.warn("Failed to parse total level requirement for target world", ex);
+			}
+		}
+
+		if (currentWorldTypes.equals(types))
+		{
+			int worldLocation = world.getLocation();
+
+			if (Boolean.parseBoolean(configManager.getConfiguration(ElBreakHandlerPlugin.CONFIG_GROUP, "american")) && worldLocation == 0)
+			{
+				return world;
+			}
+			else if (Boolean.parseBoolean(configManager.getConfiguration(ElBreakHandlerPlugin.CONFIG_GROUP, "united-kingdom")) && worldLocation == 1)
+			{
+				return world;
+			}
+			else if (Boolean.parseBoolean(configManager.getConfiguration(ElBreakHandlerPlugin.CONFIG_GROUP, "australian")) && worldLocation == 3)
+			{
+				return world;
+			}
+			else if (Boolean.parseBoolean(configManager.getConfiguration(ElBreakHandlerPlugin.CONFIG_GROUP, "german")) && worldLocation == 7)
+			{
+				return world;
+			}
+		}
+
+		return null;
+	}
+
+	private void hop()
+	{
+		clientThread.invoke(() -> {
+			WorldResult worldResult = worldService.getWorlds();
+			if (worldResult == null)
+			{
+				return;
+			}
+
+			World currentWorld = worldResult.findWorld(client.getWorld());
+
+			if (currentWorld == null)
+			{
+				return;
+			}
+
+			EnumSet<WorldType> currentWorldTypes = currentWorld.getTypes().clone();
+
+			currentWorldTypes.remove(WorldType.PVP);
+			currentWorldTypes.remove(WorldType.HIGH_RISK);
+			currentWorldTypes.remove(WorldType.BOUNTY);
+			currentWorldTypes.remove(WorldType.SKILL_TOTAL);
+			currentWorldTypes.remove(WorldType.LAST_MAN_STANDING);
+
+			List<World> worlds = worldResult.getWorlds();
+
+			int totalLevel = client.getTotalLevel();
+
+			World world;
+			do
+			{
+				world = findWorld(worlds, currentWorldTypes, totalLevel);
+			}
+			while (world == null || world == currentWorld);
+
+			hop(world.getId());
+		});
+	}
+
+	private void hop(int worldId)
+	{
+		WorldResult worldResult = worldService.getWorlds();
+		// Don't try to hop if the world doesn't exist
+		World world = worldResult.findWorld(worldId);
+		if (world == null)
+		{
+			return;
+		}
+
+		final net.runelite.api.World rsWorld = client.createWorld();
+		rsWorld.setActivity(world.getActivity());
+		rsWorld.setAddress(world.getAddress());
+		rsWorld.setId(world.getId());
+		rsWorld.setPlayerCount(world.getPlayers());
+		rsWorld.setLocation(world.getLocation());
+		rsWorld.setTypes(WorldUtil.toWorldTypes(world.getTypes()));
+
+		if (client.getGameState() == GameState.LOGIN_SCREEN)
+		{
+			client.changeWorld(rsWorld);
+			return;
+		}
+
+		String chatMessage = new ChatMessageBuilder()
+				.append(ChatColorType.NORMAL)
+				.append("Hopping away from a player. New world: ")
+				.append(ChatColorType.HIGHLIGHT)
+				.append(Integer.toString(world.getId()))
+				.append(ChatColorType.NORMAL)
+				.append("..")
+				.build();
+
+		chatMessageManager
+				.queue(QueuedMessage.builder()
+						.type(ChatMessageType.CONSOLE)
+						.runeLiteFormattedMessage(chatMessage)
+						.build());
+
+		quickHopTargetWorld = rsWorld;
+		displaySwitcherAttempts = 0;
 	}
 }

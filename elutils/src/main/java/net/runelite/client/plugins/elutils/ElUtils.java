@@ -7,61 +7,14 @@ package net.runelite.client.plugins.elutils;
 
 import com.google.gson.Gson;
 import com.google.inject.Provides;
-import java.awt.Dimension;
-import java.awt.Rectangle;
-import java.awt.event.KeyEvent;
-import static java.awt.event.KeyEvent.VK_ENTER;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.DecorativeObject;
-import net.runelite.api.GameObject;
-import net.runelite.api.GroundObject;
-import net.runelite.api.InventoryID;
-import net.runelite.api.Item;
-import net.runelite.api.ItemContainer;
-import net.runelite.api.ItemID;
-import net.runelite.api.MenuAction;
-import net.runelite.api.MenuEntry;
-import net.runelite.api.NPC;
-import net.runelite.api.Player;
 import net.runelite.api.Point;
-import net.runelite.api.Tile;
-import net.runelite.api.TileItem;
-import net.runelite.api.TileObject;
-import net.runelite.api.Varbits;
-import net.runelite.api.WallObject;
+import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.MenuEntryAdded;
-import net.runelite.api.events.MenuOptionClicked;
-import net.runelite.api.queries.BankItemQuery;
-import net.runelite.api.queries.DecorativeObjectQuery;
-import net.runelite.api.queries.GameObjectQuery;
-import net.runelite.api.queries.GroundObjectQuery;
-import net.runelite.api.queries.InventoryItemQuery;
-import net.runelite.api.queries.InventoryWidgetItemQuery;
-import net.runelite.api.queries.NPCQuery;
-import net.runelite.api.queries.TileQuery;
-import net.runelite.api.queries.WallObjectQuery;
+import net.runelite.api.events.*;
+import net.runelite.api.queries.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetItem;
@@ -75,17 +28,29 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import static net.runelite.client.plugins.elutils.Banks.ALL_BANKS;
 import net.runelite.http.api.ge.GrandExchangeClient;
 import net.runelite.http.api.osbuddy.OSBGrandExchangeClient;
 import net.runelite.http.api.osbuddy.OSBGrandExchangeResult;
 import net.runelite.rs.api.RSClient;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 import org.pf4j.Extension;
+
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
+import static java.awt.event.KeyEvent.VK_ENTER;
+import static net.runelite.client.plugins.elutils.Banks.ALL_BANKS;
 
 /**
  *
@@ -127,8 +92,8 @@ public class ElUtils extends Plugin
 
 	MenuEntry targetMenu;
 	private OSBGrandExchangeResult osbGrandExchangeResult;
-	WorldPoint nextPoint;
-	private List<WorldPoint> currentPath = new ArrayList<>();
+	public WorldPoint nextPoint;
+	public List<WorldPoint> currentPath = new LinkedList<WorldPoint>();
 
 	public boolean randomEvent;
 	public boolean iterating;
@@ -143,6 +108,9 @@ public class ElUtils extends Plugin
 	private int coordY;
 	private int nextRunEnergy;
 	private boolean walkAction;
+	public boolean retrievingPath;
+
+	public final Map<TileItem, Tile> spawnedItems = new HashMap<>();
 
 	protected static final java.util.Random random = new java.util.Random();
 	public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -318,7 +286,7 @@ public class ElUtils extends Plugin
 		{
 			return new NPCQuery()
 				.isWithinDistance(worldPoint, dist)
-				.filter(npc -> npc.getName() != null && npc.getName().toLowerCase().equals(name.toLowerCase()) && npc.getInteracting() == null && npc.getHealthRatio() != 0)
+				.filter(npc -> npc.getName() != null && npc.getName().equalsIgnoreCase(name) && npc.getInteracting() == null && npc.getHealthRatio() != 0)
 				.result(client)
 				.nearestTo(client.getLocalPlayer());
 		}
@@ -345,7 +313,7 @@ public class ElUtils extends Plugin
 		if (exactnpcname)
 		{
 			return new NPCQuery()
-				.filter(npc -> npc.getName() != null && npc.getName().toLowerCase().equals(name.toLowerCase()) && npc.getInteracting() == client.getLocalPlayer() && npc.getHealthRatio() != 0)
+				.filter(npc -> npc.getName() != null && npc.getName().equalsIgnoreCase(name) && npc.getInteracting() == client.getLocalPlayer() && npc.getHealthRatio() != 0)
 				.result(client)
 				.nearestTo(client.getLocalPlayer());
 		}
@@ -587,38 +555,6 @@ public class ElUtils extends Plugin
 		}
 
 		return findNearestGroundObject(ids);
-	}
-
-	@Nullable
-	public List<TileItem> getTileItemsWithin(int distance)
-	{
-		assert client.isClientThread();
-
-		if (client.getLocalPlayer() == null)
-		{
-			return new ArrayList<>();
-		}
-		return new TileQuery()
-			.isWithinDistance(client.getLocalPlayer().getWorldLocation(), distance)
-			.result(client)
-			.first()
-			.getGroundItems();
-	}
-
-	@Nullable
-	public List<TileItem> getTileItemsAtTile(Tile tile)
-	{
-		assert client.isClientThread();
-
-		if (client.getLocalPlayer() == null)
-		{
-			return new ArrayList<>();
-		}
-		return new TileQuery()
-			.atWorldLocation(tile.getWorldLocation())
-			.result(client)
-			.first()
-			.getGroundItems();
 	}
 
 	@Nullable
@@ -1082,22 +1018,20 @@ public class ElUtils extends Plugin
 	}
 
 	/**
-	 * Web walking functions
+	 * Web-Walking functions
 	 **/
-
 	public static String post(String url, String json) throws IOException
 	{
-
 		OkHttpClient okHttpClient = new OkHttpClient();
 		RequestBody body = RequestBody.create(JSON, json); // new
 		log.info("Sending POST request: {}", body);
 		Request request = new Request.Builder()
-			.url(url)
-			.addHeader("Content-Type", "application/json")
-			.addHeader("key", "sub_DPjXXzL5DeSiPf")
-			.addHeader("secret", "PUBLIC-KEY")
-			.post(body)
-			.build();
+				.url(url)
+				.addHeader("Content-Type", "application/json")
+				.addHeader("key", "sub_DPjXXzL5DeSiPf")
+				.addHeader("secret", "PUBLIC-KEY")
+				.post(body)
+				.build();
 		Response response = okHttpClient.newCall(request).execute();
 		return response.body().string();
 	}
@@ -1125,7 +1059,7 @@ public class ElUtils extends Plugin
 		return null;
 	}
 
-	public List<WorldPoint> getDaxPath(WorldPoint start, WorldPoint destination)
+	public String getDaxPath(WorldPoint start, WorldPoint destination)
 	{
 		Player player = client.getLocalPlayer();
 		Path path = new Path(start, destination, player);
@@ -1134,13 +1068,16 @@ public class ElUtils extends Plugin
 		String result = "";
 		try
 		{
+			retrievingPath = true;
 			result = post(DAX_API_URL, jsonString);
 		}
 		catch (IOException e)
 		{
+			retrievingPath = false;
 			e.printStackTrace();
 		}
-		return jsonToObject(result);
+		retrievingPath = false;
+		return result;
 	}
 
 	//Calculates tiles that surround the source tile and returns a random viable tile
@@ -1152,8 +1089,8 @@ public class ElUtils extends Plugin
 		}
 		WorldArea sourceArea = new WorldArea(sourcePoint, 1, 1);
 		WorldArea possibleArea = new WorldArea(
-			new WorldPoint(sourcePoint.getX() - randRadius, sourcePoint.getY() - randRadius, sourcePoint.getPlane()),
-			new WorldPoint(sourcePoint.getX() + randRadius, sourcePoint.getY() + randRadius, sourcePoint.getPlane())
+				new WorldPoint(sourcePoint.getX() - randRadius, sourcePoint.getY() - randRadius, sourcePoint.getPlane()),
+				new WorldPoint(sourcePoint.getX() + randRadius, sourcePoint.getY() + randRadius, sourcePoint.getPlane())
 		);
 		List<WorldPoint> possiblePoints = possibleArea.toWorldPointList();
 		List<WorldPoint> losPoints = new ArrayList<>();
@@ -1172,31 +1109,54 @@ public class ElUtils extends Plugin
 
 	public boolean webWalk(WorldPoint destination, int randRadius, boolean isMoving, long sleepDelay)
 	{
+		if(LocalPoint.fromWorld(client,destination)!=null){
+			walk(destination,randRadius,sleepDelay);
+			return true;
+		}
+		if (retrievingPath)
+		{
+			log.info("Waiting for path retrieval");
+			return true;
+		}
 		Player player = client.getLocalPlayer();
 		if (player != null)
 		{
 			if (player.getWorldLocation().distanceTo(destination) <= randRadius)
 			{
-				//log.info("Arrived at destination");
 				currentPath.clear();
-				webWalking = false;
 				nextPoint = null;
 				return true;
 			}
-			webWalking = true;
 			if (currentPath.isEmpty() || !currentPath.get(currentPath.size() - 1).equals(destination)) //no current path or destination doesn't match destination param
 			{
-				currentPath = getDaxPath(player.getWorldLocation(), destination); //get a new path
-			}
-			if (currentPath.isEmpty())
-			{
-				log.info("Current path is empty, failed to retrieve path");
-				return false;
+				String daxResult = getDaxPath(player.getWorldLocation(), destination);
+				log.info("daxResult: {}", daxResult);
+				if (daxResult.contains("Too Many Requests"))
+				{
+					log.info("Too many dax requests, trying again");
+					return true;
+				}
+				if (daxResult.contains("NO_WEB_PATH"))
+				{
+					log.info("Dax path not found");
+					return false;
+				}
+				if (daxResult.isEmpty())
+				{
+					log.info("Dax path is empty, failed to retrieve path");
+					return false;
+				}
+				if(daxResult.contains("BLOCKED_START"))
+				{
+					log.info("Dax path has a blocked start");
+					return false;
+				}
+				currentPath = jsonToObject(daxResult); //get a new path
+				log.info("Path found: {}", currentPath);
 			}
 			if (nextFlagDist == -1)
 			{
 				nextFlagDist = getRandomIntBetweenRange(0, 10);
-				//log.info("Next flag distance: {}", nextFlagDist);
 			}
 			if (!isMoving || (nextPoint != null && nextPoint.distanceTo(player.getWorldLocation()) < nextFlagDist))
 			{
@@ -1206,16 +1166,60 @@ public class ElUtils extends Plugin
 					log.info("Walking to next tile: {}", nextPoint);
 					walk(nextPoint, 0, sleepDelay);
 					nextFlagDist = nextPoint.equals(destination) ? 0 : getRandomIntBetweenRange(0, 10);
-					//log.info("Next flag distance: {}", nextFlagDist);
+					return true;
 				}
 				else
 				{
-					log.info("nextPoint is null");
+					log.debug("nextPoint is null");
 					return false;
 				}
 			}
+			return true;
 		}
-		return false;
+		log.info("End of method");
+		return retrievingPath;
+	}
+
+	public boolean pathWalk(List<WorldPoint> path, int randRadius, boolean isMoving, long sleepDelay)
+	{
+		Player player = client.getLocalPlayer();
+		WorldPoint destination = path.get(path.size()-1);
+		if (player != null)
+		{
+			if (player.getWorldLocation().distanceTo(destination) <= randRadius)
+			{
+				currentPath.clear();
+				nextPoint = null;
+				return true;
+			}
+			if (currentPath.isEmpty() || !currentPath.get(currentPath.size() - 1).equals(destination)) //no current path or destination doesn't match destination param
+			{
+				currentPath = path;
+			}
+			if (nextFlagDist == -1)
+			{
+				nextFlagDist = getRandomIntBetweenRange(0, 10);
+			}
+			if (!isMoving || (nextPoint != null && nextPoint.distanceTo(player.getWorldLocation()) < nextFlagDist))
+			{
+				nextPoint = getNextPoint(currentPath, randRadius);
+				if (nextPoint != null)
+				{
+					log.info("Walking to next tile: {}", nextPoint);
+					walk(nextPoint, 0, sleepDelay);
+					nextFlagDist = nextPoint.equals(destination) ? 0 : getRandomIntBetweenRange(0, 10);
+					return true;
+				}
+				else
+				{
+					log.debug("nextPoint is null");
+					return false;
+				}
+			}
+			return true;
+		}
+		log.info("End of method");
+		return retrievingPath;
 	}
 
 	public boolean isRunEnabled()
@@ -1651,11 +1655,7 @@ public class ElUtils extends Plugin
 				}
 			}
 		}
-		if ((exactAmount && total != amount) || (total < amount))
-		{
-			return false;
-		}
-		return true;
+		return (!exactAmount || total == amount) && (total >= amount);
 	}
 
 	public boolean inventoryItemContainsAmount(Collection<Integer> ids, int amount, boolean stackable, boolean exactAmount)
@@ -1678,11 +1678,7 @@ public class ElUtils extends Plugin
 				}
 			}
 		}
-		if ((exactAmount && total != amount) || (total < amount))
-		{
-			return false;
-		}
-		return true;
+		return (!exactAmount || total == amount) && (total >= amount);
 	}
 
 	public boolean inventoryContains(Collection<Integer> itemIds)
@@ -2632,6 +2628,7 @@ public class ElUtils extends Plugin
 				log.debug("Walk action");
 				walkTile(coordX, coordY);
 				walkAction = false;
+				setMenuEntry(null);
 				return;
 			}
 			if (modifiedMenu)
@@ -2661,5 +2658,35 @@ public class ElUtils extends Plugin
 		menuOptionClicked.setMenuAction(menuAction);
 		menuOptionClicked.setActionParam(param0);
 		menuOptionClicked.setWidgetId(param1);
+		log.info(menuOptionClicked.toString());
+	}
+
+	public boolean pointIntersectIgnoringPlane(WorldPoint a, WorldPoint b){
+		return a.getX() == b.getX() && a.getY() == b.getY();
+	}
+
+	public boolean areaIntersectIgnoringPlane(WorldArea a, WorldArea b){
+		a = new WorldArea(new WorldPoint(a.getX(),a.getY(),0),a.getWidth(),a.getHeight());
+		b = new WorldArea(new WorldPoint(b.getX(),b.getY(),0),b.getWidth(),b.getHeight());
+		return a.intersectsWith(b);
+	}
+
+
+	//GROUND ITEM STUFF
+	@Subscribe
+	private void onItemSpawned(ItemSpawned itemSpawned)
+	{
+		spawnedItems.put(itemSpawned.getItem(), itemSpawned.getTile());
+	}
+
+	@Subscribe
+	private void onItemDespawned(ItemDespawned itemDespawned)
+	{
+		spawnedItems.remove(itemDespawned.getItem());
+	}
+
+	@Subscribe
+	private void onGameStateChanged(GameStateChanged gameStateChanged){
+		spawnedItems.clear();
 	}
 }

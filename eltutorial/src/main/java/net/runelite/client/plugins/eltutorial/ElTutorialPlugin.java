@@ -1,10 +1,9 @@
 package net.runelite.client.plugins.eltutorial;
 
 import com.google.inject.Provides;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.*;
 import net.runelite.api.Point;
+import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
@@ -16,13 +15,15 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.elutils.ElUtils;
 import net.runelite.client.ui.overlay.OverlayManager;
 import org.pf4j.Extension;
-import net.runelite.client.plugins.elutils.ElUtils;
-import net.runelite.client.plugins.elbreakhandler.ElBreakHandler;
+
+import javax.inject.Inject;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.time.Instant;
+
 import static net.runelite.client.plugins.eltutorial.ElTutorialState.*;
 
 @Extension
@@ -507,7 +508,11 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						pressSpace();
+						if(client.getWidget(213,0)!=null && !client.getWidget(213,0).isHidden()){
+							pressSpace();
+						} else {
+							tutorialSectionProgress=0;
+						}
 						break;
 				}
 				break;

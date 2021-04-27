@@ -29,7 +29,12 @@ import javax.swing.JFormattedTextField;
 
 final class UnitFormatter extends JFormattedTextField.AbstractFormatter
 {
-	private final String units = " mins";
+	private final String units;
+
+	UnitFormatter(String units)
+	{
+		this.units = units;
+	}
 
 	@Override
 	public Object stringToValue(final String text) throws ParseException

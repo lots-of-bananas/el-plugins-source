@@ -276,6 +276,9 @@ public class ElDiscordPlugin extends Plugin
 
 	private void sendWebhook(WebhookBody webhookBody)
 	{
+		if(webhookBody==null){
+			return;
+		}
 		Duration duration = Duration.between(timeLoggedIn, Instant.now());
 		String timeFormat = "HH:mm:ss";
 		webhookBody.setContent("[" + formatDuration(duration.toMillis(), timeFormat) + "]" + webhookBody.getContent());
@@ -302,6 +305,9 @@ public class ElDiscordPlugin extends Plugin
 
 	private void sendTextOnlyWebhook(WebhookBody webhookBody)
 	{
+		if(webhookBody==null){
+			return;
+		}
 		Duration duration = Duration.between(timeLoggedIn, Instant.now());
 		String timeFormat = "HH:mm:ss";
 		webhookBody.setContent("[" + formatDuration(duration.toMillis(), timeFormat) + "]" + webhookBody.getContent());
@@ -320,6 +326,9 @@ public class ElDiscordPlugin extends Plugin
 
 	private void createWebhookWithScreenshot(WebhookBody webhookBody)
 	{
+		if(webhookBody==null){
+			return;
+		}
 		Duration duration = Duration.between(timeLoggedIn, Instant.now());
 		String timeFormat = "HH:mm:ss";
 		webhookBody.setContent("[" + formatDuration(duration.toMillis(), timeFormat) + "]" + webhookBody.getContent());
@@ -535,7 +544,7 @@ public class ElDiscordPlugin extends Plugin
 
 	@Subscribe
 	public void onChatMessage(ChatMessage event){
-		if(event.getMessage().toLowerCase().contains("bot") && event.getType().equals(ChatMessageType.PUBLICCHAT)){
+		if(event.getMessage().toLowerCase().contains("bot") && event.getType().equals(ChatMessageType.PUBLICCHAT) && config.sendBotMessage()){
 			WebhookBody webhookBody = new WebhookBody();
 			webhookBody.setContent("<@" + config.userID() + "> someone has said bot in the chat!\n");
 			createWebhookWithScreenshot(webhookBody);

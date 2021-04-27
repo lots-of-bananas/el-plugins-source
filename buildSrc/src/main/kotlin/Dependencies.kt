@@ -31,6 +31,7 @@ object ProjectVersions {
 object Libraries {
     private object Versions {
         const val apacheCommonsText = "1.2"
+        const val guava = "23.2-jre"
         const val gson = "2.8.5"
         const val guice = "4.1.0"
         const val lombok = "1.18.4"
@@ -46,6 +47,7 @@ object Libraries {
 
 
     const val apacheCommonsText = "org.apache.commons:commons-text:${Versions.apacheCommonsText}"
+    const val guava = "com.google.guava:guava:${Versions.guava}"
     const val gson = "com.google.code.gson:gson:${Versions.gson}"
     const val guice = "com.google.inject:guice:${Versions.guice}:no_aop"
     const val lombok = "org.projectlombok:lombok:${Versions.lombok}"

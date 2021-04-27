@@ -16,7 +16,7 @@ public class OnOffToggleButton extends JToggleButton
 
 	static
 	{
-		BufferedImage onSwitcher = ImageUtil.getResourceStreamFromClass(ElBreakHandlerPlugin.class, "switcher_on.png");
+		BufferedImage onSwitcher = ImageUtil.loadImageResource(ElBreakHandlerPlugin.class, "switcher_on.png");
 		ON_SWITCHER = new ImageIcon(ImageUtil.recolorImage(onSwitcher, ColorScheme.BRAND_BLUE));
 		OFF_SWITCHER = new ImageIcon(ImageUtil.flipImage(
 			ImageUtil.luminanceScale(

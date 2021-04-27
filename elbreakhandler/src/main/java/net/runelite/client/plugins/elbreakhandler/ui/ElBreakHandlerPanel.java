@@ -2,6 +2,7 @@ package net.runelite.client.plugins.elbreakhandler.ui;
 
 import net.runelite.client.plugins.elbreakhandler.ElBreakHandler;
 import net.runelite.client.plugins.elbreakhandler.ElBreakHandlerPlugin;
+import net.runelite.client.plugins.elbreakhandler.ui.utils.ConfigPanel;
 import net.runelite.client.plugins.elbreakhandler.ui.utils.JMultilineLabel;
 import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -16,12 +17,14 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -40,7 +43,7 @@ import net.runelite.client.util.SwingUtil;
 
 public class ElBreakHandlerPanel extends PluginPanel
 {
-	final static Color PANEL_BACKGROUND_COLOR = ColorScheme.DARK_GRAY_COLOR;
+	public final static Color PANEL_BACKGROUND_COLOR = ColorScheme.DARK_GRAY_COLOR;
 	final static Color BACKGROUND_COLOR = ColorScheme.DARKER_GRAY_COLOR;
 
 	static final Font NORMAL_FONT = FontManager.getRunescapeFont();
@@ -53,7 +56,7 @@ public class ElBreakHandlerPanel extends PluginPanel
 	{
 		final BufferedImage helpIcon =
 			ImageUtil.recolorImage(
-				ImageUtil.getResourceStreamFromClass(ElBreakHandlerPlugin.class, "help.png"), ColorScheme.BRAND_BLUE
+				ImageUtil.loadImageResource(ElBreakHandlerPlugin.class, "help.png"), ColorScheme.BRAND_BLUE
 			);
 		HELP_ICON = new ImageIcon(helpIcon);
 		HELP_HOVER_ICON = new ImageIcon(ImageUtil.alphaOffset(helpIcon, 0.53f));
@@ -61,6 +64,7 @@ public class ElBreakHandlerPanel extends PluginPanel
 
 	private final ElBreakHandlerPlugin elBreakHandlerPlugin;
 	private final ElBreakHandler elBreakHandler;
+	private final ConfigPanel configPanel;
 
 	public @NonNull Disposable pluginDisposable;
 	public @NonNull Disposable activeDisposable;
@@ -72,12 +76,15 @@ public class ElBreakHandlerPanel extends PluginPanel
 	private final JPanel breakTimingsPanel = new JPanel(new GridLayout(0, 1));
 
 	@Inject
-	private ElBreakHandlerPanel(ElBreakHandlerPlugin elBreakHandlerPlugin, ElBreakHandler elBreakHandler)
+	private ElBreakHandlerPanel(ElBreakHandlerPlugin elBreakHandlerPlugin, ElBreakHandler elBreakHandler, ConfigPanel configPanel)
 	{
 		super(false);
 
+		configPanel.init(elBreakHandlerPlugin.getOptionsConfig());
+
 		this.elBreakHandlerPlugin = elBreakHandlerPlugin;
 		this.elBreakHandler = elBreakHandler;
+		this.configPanel = configPanel;
 
 		pluginDisposable = elBreakHandler
 			.getPluginObservable()
@@ -140,7 +147,7 @@ public class ElBreakHandlerPanel extends PluginPanel
 		if (plugins.isEmpty())
 		{
 			PluginErrorPanel errorPanel = new PluginErrorPanel();
-			errorPanel.setContent("El break handler", "There were no plugins that registered themselves with the break handler.");
+			errorPanel.setContent("El Break Handler", "There were no plugins that registered themselves with the break handler.");
 
 			add(errorPanel, BorderLayout.NORTH);
 		}
@@ -167,7 +174,7 @@ public class ElBreakHandlerPanel extends PluginPanel
 		JLabel title = new JLabel();
 		JLabel help = new JLabel(HELP_ICON);
 
-		title.setText("El break handler");
+		title.setText("El Break Handler");
 		title.setForeground(Color.WHITE);
 
 		help.setToolTipText("Info");
@@ -177,12 +184,12 @@ public class ElBreakHandlerPanel extends PluginPanel
 			public void mousePressed(MouseEvent mouseEvent)
 			{
 				JOptionPane.showMessageDialog(
-					ClientUI.getFrame(),
-					"<html><center>The configs in this panel can be used to <b>schedule</b> breaks.<br>" +
-						"When the timer hits zero a break is scheduled. This does not mean that the break will be taken immediately!<br>" +
-						"Plugins decide what the best time is for a break, for example a NMZ dream will be finished instead of interrupted.</center></html>",
-					"El break handler",
-					JOptionPane.QUESTION_MESSAGE
+						ClientUI.getFrame(),
+						"<html><center>The configs in this panel can be used to <b>schedule</b> breaks.<br>" +
+								"When the timer hits zero a break is scheduled. This does not mean that the break will be taken immediately!<br>" +
+								"Plugins decide what the best time is for a break, for example a NMZ dream will be finished instead of interrupted.</center></html>",
+						"El Break Handler",
+						JOptionPane.QUESTION_MESSAGE
 				);
 			}
 
@@ -224,8 +231,8 @@ public class ElBreakHandlerPanel extends PluginPanel
 		JPanel titleWrapper = new JPanel(new BorderLayout());
 		titleWrapper.setBackground(new Color(125, 40, 40));
 		titleWrapper.setBorder(new CompoundBorder(
-			BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(115, 30, 30)),
-			BorderFactory.createLineBorder(new Color(125, 40, 40))
+				BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(115, 30, 30)),
+				BorderFactory.createLineBorder(new Color(125, 40, 40))
 		));
 
 		JLabel title = new JLabel();
@@ -276,8 +283,8 @@ public class ElBreakHandlerPanel extends PluginPanel
 			JPanel titleWrapper = new JPanel(new BorderLayout());
 			titleWrapper.setBackground(new Color(125, 40, 40));
 			titleWrapper.setBorder(new CompoundBorder(
-				BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(115, 30, 30)),
-				BorderFactory.createLineBorder(new Color(125, 40, 40))
+					BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(115, 30, 30)),
+					BorderFactory.createLineBorder(new Color(125, 40, 40))
 			));
 
 			JLabel title = new JLabel();
@@ -357,6 +364,25 @@ public class ElBreakHandlerPanel extends PluginPanel
 			contentPanel.add(statusPanel, c);
 		}
 
+		JButton scheduleBreakButton = new JButton("Schedule break now");
+
+		if (activePlugins.size() > 0)
+		{
+			scheduleBreakButton.addActionListener(e -> activePlugins.forEach(plugin -> {
+				if (!elBreakHandler.isBreakActive(plugin))
+				{
+					elBreakHandler.planBreak(plugin, Instant.now());
+				}
+			}));
+
+			c.fill = GridBagConstraints.HORIZONTAL;
+			c.weightx = 1.0;
+			c.gridy += 1;
+			c.insets = new Insets(5, 10, 0, 10);
+
+			contentPanel.add(scheduleBreakButton, c);
+		}
+
 		return contentPanel;
 	}
 
@@ -366,9 +392,11 @@ public class ElBreakHandlerPanel extends PluginPanel
 
 		JScrollPane pluginPanel = wrapContainer(contentPane(plugins));
 		JScrollPane repositoryPanel = wrapContainer(new ElBreakHandlerAccountPanel(elBreakHandlerPlugin, elBreakHandler));
+		JScrollPane optionsPanel = wrapContainer(configPanel);
 
 		mainTabPane.add("Plugins", pluginPanel);
 		mainTabPane.add("Accounts", repositoryPanel);
+		mainTabPane.add("Options", optionsPanel);
 
 		return mainTabPane;
 	}

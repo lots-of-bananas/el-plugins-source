@@ -1,13 +1,9 @@
 package net.runelite.client.plugins.elglassblower;
 
 import com.google.inject.Provides;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.*;
-import net.runelite.api.Client;
-import net.runelite.api.GameObject;
-import net.runelite.api.MenuEntry;
 import net.runelite.api.Point;
+import net.runelite.api.*;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.ConfigButtonClicked;
 import net.runelite.api.events.GameTick;
@@ -20,16 +16,17 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.plugins.elutils.ElUtils;
-import net.runelite.client.plugins.elbreakhandler.ElBreakHandler;
+import net.runelite.client.ui.overlay.OverlayManager;
 import org.pf4j.Extension;
 
+import javax.inject.Inject;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.awt.Rectangle;
 
 import static net.runelite.client.plugins.elutils.Banks.BANK_SET;
 
@@ -363,9 +360,15 @@ public class ElGlassBlowerPlugin extends Plugin
 	private void openNearestBank()
 	{
 		if(config.grandExchange()){
-			targetMenu=new MenuEntry("Bank","<col=ffff00>Banker",18847,11,0,0,false);
-			utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
-			return;
+			NPC targetNpc = utils.findNearestNpc(3089,1634,1633,1613);
+			if(targetNpc!=null){
+				targetMenu=new MenuEntry("Bank","<col=ffff00>Banker",targetNpc.getIndex(),11,0,0,false);
+				utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+				return;
+			} else {
+				log.debug("Unable to find g.e banker.");
+			}
+
 		}
 		GameObject targetObject = new GameObjectQuery()
 				.idEquals(BANKS)

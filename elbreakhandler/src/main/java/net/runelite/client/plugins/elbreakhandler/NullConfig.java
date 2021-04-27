@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2020, Hydrox6 <ikada@protonmail.ch>
+ * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2018, Dalton <delps1001@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,22 +23,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.elbreakhandler.ui.utils;
+package net.runelite.client.plugins.elbreakhandler;
 
-import java.util.HashMap;
-import java.util.Map;
-import javax.swing.JFormattedTextField;
-import lombok.RequiredArgsConstructor;
+import static net.runelite.client.plugins.elbreakhandler.ElBreakHandlerPlugin.CONFIG_GROUP;
+import net.runelite.client.config.Config;
+import net.runelite.client.config.ConfigGroup;
 
-@RequiredArgsConstructor
-public final class UnitFormatterFactory extends JFormattedTextField.AbstractFormatterFactory
+@ConfigGroup(CONFIG_GROUP)
+public interface NullConfig extends Config
 {
-	private final String units;
-	private final Map<JFormattedTextField, JFormattedTextField.AbstractFormatter> formatters = new HashMap<>();
 
-	@Override
-	public JFormattedTextField.AbstractFormatter getFormatter(final JFormattedTextField tf)
-	{
-		return formatters.computeIfAbsent(tf, (key) -> new UnitFormatter(units));
-	}
 }

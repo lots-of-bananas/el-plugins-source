@@ -67,6 +67,7 @@ subprojects {
 
         compileOnly(Libraries.findbugs)
         compileOnly(Libraries.apacheCommonsText)
+        compileOnly(Libraries.guava)
         compileOnly(Libraries.gson)
         compileOnly(Libraries.guice)
         compileOnly(Libraries.lombok)

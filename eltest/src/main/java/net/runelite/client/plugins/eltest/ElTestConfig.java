@@ -24,6 +24,7 @@
  */
 package net.runelite.client.plugins.eltest;
 
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.config.*;
 
 @ConfigGroup("ElTest")
@@ -59,6 +60,30 @@ public interface ElTestConfig extends Config
 	)
 	String elTestTitle = "elTestTitle";
 
+	@ConfigItem(
+			keyName = "X",
+			name = "X",
+			description = "WorldPoint",
+			position = 2,
+			section = "elTestTitle"
+	)
+	default int X()
+	{
+		return 0;
+	}
+
+	@ConfigItem(
+			keyName = "Y",
+			name = "Y",
+			description = "WorldPoint",
+			position = 3,
+			section = "elTestTitle"
+	)
+	default int Y()
+	{
+		return 0;
+	}
+
 	@ConfigSection(
 			keyName = "uiTitle",
 			name = "UI Config",
@@ -66,7 +91,6 @@ public interface ElTestConfig extends Config
 			position = 140
 	)
 	String uiTitle = "uiTitle";
-
 
 	@ConfigItem(
 			keyName = "enableUI",

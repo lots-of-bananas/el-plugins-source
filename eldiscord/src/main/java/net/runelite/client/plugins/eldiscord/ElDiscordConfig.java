@@ -235,6 +235,18 @@ public interface ElDiscordConfig extends Config
 		return 1000;
 	}
 
+	@ConfigItem(
+			keyName = "sendBotMessage",
+			name = "Send Bot Message",
+			description = "Enable this to send a message if someone says bot.",
+			position = 13,
+			section = "generalTitle"
+	)
+	default boolean sendBotMessage()
+	{
+		return false;
+	}
+
 	@ConfigSection(
 			keyName = "hotkeyTitle",
 			name = "Hotkey",
