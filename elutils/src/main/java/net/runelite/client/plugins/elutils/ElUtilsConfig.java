@@ -41,6 +41,6 @@ public interface ElUtilsConfig extends Config
 	)
 	default Mouse getMouse()
 	{
-		return Mouse.NO_MOVE;
+		return Mouse.ZERO_MOUSE;
 	}
 }

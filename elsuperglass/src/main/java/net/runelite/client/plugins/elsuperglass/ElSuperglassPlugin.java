@@ -7,7 +7,6 @@ import net.runelite.api.*;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.ConfigButtonClicked;
 import net.runelite.api.events.GameTick;
-import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.queries.GameObjectQuery;
 import net.runelite.api.queries.TileQuery;
 import net.runelite.client.config.ConfigManager;
@@ -54,7 +53,6 @@ public class ElSuperglassPlugin extends Plugin
 	private ElSuperglassOverlay overlay;
 
 	//plugin data
-	MenuEntry targetMenu;
 	int clientTickBreak = 0;
 	int withdrawClickCount = 0;
 	int tickTimer;
@@ -113,7 +111,6 @@ public class ElSuperglassPlugin extends Plugin
 			if (!startSuperglassMaker)
 			{
 				startSuperglassMaker = true;
-				targetMenu = null;
 				botTimer = Instant.now();
 				overlayManager.add(overlay);
 				BANKS.addAll(BANK_SET);
@@ -153,6 +150,15 @@ public class ElSuperglassPlugin extends Plugin
 			return;
 		}
 
+		if (client.getKeyboardIdleTicks() > utils.getRandomIntBetweenRange(14750,14900))
+		{
+			client.setKeyboardIdleTicks(0);
+		}
+		if (client.getMouseIdleTicks() > utils.getRandomIntBetweenRange(14740,14890))
+		{
+			client.setMouseIdleTicks(0);
+		}
+
 		status = checkPlayerStatus();
 		updateLeftValues();
 		log.info(status);
@@ -166,8 +172,7 @@ public class ElSuperglassPlugin extends Plugin
 				break;
 			case "DEPOSITING_FULL_INVENTORY":
 				if(utils.isBankOpen()){
-					targetMenu = new MenuEntry("Deposit inventory","",1,57,-1,786473,false);
-					utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+					client.invokeMenuAction("Deposit inventory","",1,57,-1,786473);
 					utils.pressKey(27);
 					tickTimer+=tickDelay();
 				} else {
@@ -176,8 +181,7 @@ public class ElSuperglassPlugin extends Plugin
 				}
 				break;
 			case  "CASTING_SUPERGLASS_MAKE":
-				targetMenu = new MenuEntry("Cast", "<col=00ff00>Superglass Make</col>",1,57,-1,14286965,false);
-				utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+				client.invokeMenuAction("Cast", "<col=00ff00>Superglass Make</col>",1,57,-1,14286965);
 				tickTimer+=3+tickDelay();
 				break;
 			case "BANKING_FOR_SUPPLIES":
@@ -211,21 +215,18 @@ public class ElSuperglassPlugin extends Plugin
 
 		if(utils.isBankOpen()){
 			if(withdrawClickCount==0){
-				targetMenu = new MenuEntry ("Deposit inventory","",1,57,-1,786473,false);
-				utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+				client.invokeMenuAction("Deposit inventory","",1,57,-1,786473);
 				withdrawClickCount++;
 				return;
 			} else if(withdrawClickCount>0 && withdrawClickCount<4) {
 				if (utils.bankContains("Giant seaweed")) {
-					targetMenu = new MenuEntry("Withdraw-1", "Withdraw-1", 1, 57, utils.getBankItemWidget(21504).getIndex(), 786444, false);
-					utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+					client.invokeMenuAction("Withdraw-1", "Withdraw-1", 1, 57, utils.getBankItemWidget(21504).getIndex(), 786444);
 					withdrawClickCount++;
 					return;
 				}
 			} else if(withdrawClickCount==4) {
 				if (utils.bankContains("Bucket of sand")) {
-					targetMenu = new MenuEntry("Withdraw-18", "<col=ff9040>Bucket of sand</col>", 5, 57, utils.getBankItemWidget(1783).getIndex(), 786444, false);
-					utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+					client.invokeMenuAction("Withdraw-18", "<col=ff9040>Bucket of sand</col>", 5, 57, utils.getBankItemWidget(1783).getIndex(), 786444);
 					withdrawClickCount++;
 					return;
 				}
@@ -238,26 +239,6 @@ public class ElSuperglassPlugin extends Plugin
 			}
 		}
 
-	}
-
-	@Subscribe
-	private void onMenuOptionClicked(MenuOptionClicked event)
-	{
-		if(targetMenu!=null){
-			menuAction(event,targetMenu.getOption(), targetMenu.getTarget(), targetMenu.getIdentifier(), targetMenu.getMenuAction(),
-					targetMenu.getParam0(), targetMenu.getParam1());
-			targetMenu = null;
-		}
-	}
-
-	public void menuAction(MenuOptionClicked menuOptionClicked, String option, String target, int identifier, MenuAction menuAction, int param0, int param1)
-	{
-		menuOptionClicked.setMenuOption(option);
-		menuOptionClicked.setMenuTarget(target);
-		menuOptionClicked.setId(identifier);
-		menuOptionClicked.setMenuAction(menuAction);
-		menuOptionClicked.setActionParam(param0);
-		menuOptionClicked.setWidgetId(param1);
 	}
 
 	private long sleepDelay()
@@ -316,8 +297,7 @@ public class ElSuperglassPlugin extends Plugin
 			if(tile.getGroundItems()!=null){
 				for(TileItem tileItem : tile.getGroundItems()){
 					if(tileItem.getId()==1775){
-						targetMenu = new MenuEntry ("Take", "<col=ff9040>Molten glass",1775,20,client.getLocalPlayer().getLocalLocation().getSceneX(),client.getLocalPlayer().getLocalLocation().getSceneY(),false);
-						utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+						client.invokeMenuAction("Take", "<col=ff9040>Molten glass",1775,20,client.getLocalPlayer().getLocalLocation().getSceneX(),client.getLocalPlayer().getLocalLocation().getSceneY());
 						return;
 					}
 				}
@@ -329,8 +309,7 @@ public class ElSuperglassPlugin extends Plugin
 	{
 		if(config.grandExchange()){
 			NPC targetNPC = utils.findNearestNpc("Banker");
-			targetMenu=new MenuEntry("Bank","<col=ffff00>Banker",targetNPC.getIndex(),11,0,0,false);
-			utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
+			client.invokeMenuAction("Bank","<col=ffff00>Banker",targetNPC.getIndex(),11,0,0);
 			return;
 		}
 		GameObject targetObject = new GameObjectQuery()
@@ -339,13 +318,12 @@ public class ElSuperglassPlugin extends Plugin
 				.nearestTo(client.getLocalPlayer());
 		if(targetObject!=null){
 			if(targetObject.getId()==31582){
-				targetMenu = new MenuEntry("","",targetObject.getId(),4,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY()-1,false);
+				client.invokeMenuAction("","",targetObject.getId(),4,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY()-1);
 			} else if(targetObject.getId()==26707 || targetObject.getId()==26711){
-				targetMenu = new MenuEntry("","",targetObject.getId(),3,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY(),false);
+				client.invokeMenuAction("","",targetObject.getId(),3,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY());
 			} else {
-				targetMenu = new MenuEntry("","",targetObject.getId(),4,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY(),false);
+				client.invokeMenuAction("","",targetObject.getId(),4,targetObject.getLocalLocation().getSceneX(),targetObject.getLocalLocation().getSceneY());
 			}
-			utils.delayMouseClick(getRandomNullPoint(),sleepDelay());
 		}
 	}
 

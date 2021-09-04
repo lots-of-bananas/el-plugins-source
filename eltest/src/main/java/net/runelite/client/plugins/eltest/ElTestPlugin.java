@@ -3,8 +3,6 @@ package net.runelite.client.plugins.eltest;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.coords.LocalPoint;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ConfigButtonClicked;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
@@ -90,9 +88,9 @@ public class ElTestPlugin extends Plugin implements MouseListener, KeyListener {
 	int clientTickCounter;
 	boolean clientClick;
 
-	int currentWorld;
+	String worldListHighPop;
 
-	LocalPoint beforeLoc = new LocalPoint(0, 0);
+	int currentWorld;
 
 
 	// Provides our config
@@ -159,10 +157,18 @@ public class ElTestPlugin extends Plugin implements MouseListener, KeyListener {
 	private void setValues()
 	{
 		timeout = 0;
-		beforeLoc = client.getLocalPlayer().getLocalLocation();
 		clientTickCounter=-1;
 		clientTickBreak=0;
 		clientClick=false;
+	}
+	private void testFunction(){
+		worldListHighPop = "";
+		for(World world : client.getWorldList()){
+			if(world.getPlayerCount()>1000){
+				worldListHighPop += world.getIndex();
+			}
+		}
+		log.info(worldListHighPop);
 	}
 
 	@Subscribe
@@ -173,25 +179,14 @@ public class ElTestPlugin extends Plugin implements MouseListener, KeyListener {
 		if (timeout > 0)
 		{
 			timeout--;
-			return;
-		}
-
-		targetObject = utils.findNearestGameObject(10820);
-		if(targetObject!=null){
-			log.info(WorldPoint.fromScene(client,targetObject.getSceneMinLocation().getX(),targetObject.getSceneMinLocation().getY(),0).toString());
-			log.info(WorldPoint.fromScene(client,targetObject.getSceneMaxLocation().getX(),targetObject.getSceneMaxLocation().getY(),0).toString());
+		} else {
+			Player player = client.getLocalPlayer();
 		}
 	}
 
 	@Subscribe
 	private void onMenuOptionClicked(MenuOptionClicked event)
 	{
-		log.info("hi");
-		if(event.getWidgetId()==35454992){
-			log.info("found");
-			event.setWidgetId(10485774);
-			return;
-		}
 		if(targetMenu!=null){
 			menuAction(event, targetMenu.getOption(),targetMenu.getTarget(),targetMenu.getIdentifier(),targetMenu.getMenuAction(),targetMenu.getParam0(),targetMenu.getParam1());
 			targetMenu=null;

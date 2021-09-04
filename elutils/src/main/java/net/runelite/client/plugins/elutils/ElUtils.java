@@ -894,7 +894,7 @@ public class ElUtils extends Plugin
 			case ZERO_MOUSE:
 				click(new Point(0, 0));
 				return;
-			case MOVE:
+			/*case MOVE:
 				if (point.getX() > viewportWidth || point.getY() > viewportHeight || point.getX() < 0 || point.getY() < 0)
 				{
 					clickRandomPointCenter(-100, 100);
@@ -913,7 +913,7 @@ public class ElUtils extends Plugin
 				return;
 			case RECTANGLE:
 				Point rectPoint = new Point(client.getCenterX() + getRandomIntBetweenRange(-100, 100), client.getCenterY() + getRandomIntBetweenRange(-100, 100));
-				click(rectPoint);
+				click(rectPoint);*/
 		}
 	}
 
@@ -1285,7 +1285,7 @@ public class ElUtils extends Plugin
 		log.info("enabling run");
 		executorService.submit(() ->
 		{
-			targetMenu = new MenuEntry("Toggle Run", "", 1, 57, -1, 10485782, false);
+			targetMenu = new MenuEntry("Toggle Run", "", 1, 57, -1, 10485783, false);
 			delayMouseClick(runOrbBounds, getRandomIntBetweenRange(10, 250));
 		});
 	}

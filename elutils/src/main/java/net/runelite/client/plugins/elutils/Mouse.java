@@ -2,10 +2,7 @@ package net.runelite.client.plugins.elutils;
 
 public enum Mouse
 {
-	ZERO_MOUSE("0x,0y mouse"),
-	NO_MOVE("No move data"),
-	MOVE("Move mouse"),
-	RECTANGLE("Rectangle mouse");
+	ZERO_MOUSE("0x,0y mouse");
 
 	public final String name;
 
