@@ -366,7 +366,8 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						openTab(10747951);
+						//openTab(10747951);
+						openTab(10747944);
 						break;
 				}
 				break;
@@ -408,7 +409,7 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 3:
-						openTab(10747966);
+						openTab(10747958);
 						break;
 				}
 				break;
@@ -416,7 +417,7 @@ public class ElTutorialPlugin extends Plugin
 				talkNPC(3317);
 				break;
 			case 50:
-				openTab(10747964);
+				openTab(10747956);
 				break;
 			case 60:
 				switch(tutorialSectionProgress){
@@ -491,7 +492,7 @@ public class ElTutorialPlugin extends Plugin
 				openDoor(9716);
 				break;
 			case 220:
-				talkNPC(3312);
+				talkNPC(3311);
 				break;
 			case 230:
 				switch(tutorialSectionProgress){
@@ -500,7 +501,7 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						openTab(10747965);
+						openTab(10747957);
 						break;
 				}
 				break;
@@ -600,7 +601,7 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						openTab(10747967);
+						openTab(10747959);
 						break;
 				}
 				break;
@@ -637,7 +638,7 @@ public class ElTutorialPlugin extends Plugin
 				}
 				break;
 			case 430:
-				openTab(10747963);
+				openTab(10747955);
 				break;
 			case 440:
 				openDoor(9719);
@@ -730,7 +731,7 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						openTab(10747949);
+						openTab(10747942);
 						break;
 				}
 				break;
@@ -761,7 +762,7 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						openTab(10747968);
+						openTab(10747960);
 						break;
 				}
 				break;
@@ -784,7 +785,7 @@ public class ElTutorialPlugin extends Plugin
 						tutorialSectionProgress++;
 						break;
 					case 1:
-						openTab(10747950);
+						openTab(10747943);
 						break;
 				}
 				break;
@@ -844,7 +845,7 @@ public class ElTutorialPlugin extends Plugin
 				}
 				break;
 			case 630:
-				openTab(10747969);
+					openTab(10747961);
 				break;
 			case 640:
 				switch(tutorialSectionProgress) {
